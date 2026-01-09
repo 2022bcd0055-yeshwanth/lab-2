@@ -5,6 +5,7 @@ import math
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
+import joblib
 
 # Load dataset
 data = pd.read_csv("data/wine+quality/winequality-red.csv", sep=";")
@@ -37,6 +38,8 @@ results = {
     "rmse": rmse,
     "r2": r2
 }
+
+joblib.dump(model, "outputs/model.pkl")
 
 with open("results.json", "w") as f:
     json.dump(results, f, indent=4)
