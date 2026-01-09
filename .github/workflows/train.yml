@@ -1,10 +1,9 @@
-name: ML Training Pipeline
+name: Train ML Model
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   train:
@@ -14,10 +13,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
@@ -26,20 +25,14 @@ jobs:
 
       - name: Run training
         run: |
-          python src/train.py | tee output.txt
+          python scripts/train.py | tee metrics.txt
 
-      - name: Write Job Summary
+      - name: Write results to Job Summary
         run: |
           echo "## ML Experiment Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Name:** Yeshwanth" >> $GITHUB_STEP_SUMMARY
           echo "**Roll Number:** 2022BCD0056" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          cat output.txt >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ml-artifacts
-          path: |
-            outputs/model.pkl
-            outputs/results.json
+          grep "RMSE" metrics.txt >> $GITHUB_STEP_SUMMARY
+          grep "R2" metrics.txt >> $GITHUB_STEP_SUMMARY
