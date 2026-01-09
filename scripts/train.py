@@ -4,9 +4,8 @@ import json
 import math
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression,Ridge
-from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LinearRegression
+
 from sklearn.metrics import mean_squared_error, r2_score
 import joblib
 
@@ -22,11 +21,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # Train model
-model = Pipeline([
-    ("scaler", StandardScaler()),
-    ("ridge", Ridge(alpha=1.0))
-])
-
+model = LinearRegression()
 model.fit(X_train, y_train)
 
 # Predict
