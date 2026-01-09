@@ -39,7 +39,7 @@ results = {
     "r2": r2
 }
 
-joblib.dump(model, "outputs/model.pkl")
+joblib.dump(model, "model.pkl")
 
 with open("results.json", "w") as f:
     json.dump(results, f, indent=4)
