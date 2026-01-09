@@ -52,4 +52,8 @@ joblib.dump(model, os.path.join(OUTPUT_DIR, "model.pkl"))
 
 # Save metrics
 with open(os.path.join(OUTPUT_DIR, "results.json"), "w") as f:
+<<<<<<< HEAD
     json.dump({"MSE": mse, "R2": r2}, f, indent=4)
+=======
+    json.dump({"MSE": mse, "R2": r2}, f, indent=4)
+>>>>>>> 6833fea0e99ab0bc0418bd1426884e794502e34b
