@@ -22,10 +22,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # Train model
-model = Pipeline([
-    ("scaler", StandardScaler()),
-    ("ridge", Ridge(alpha=1.0))
-])
+model = RandomForestRegressor(random_state=42)
 
 model.fit(X_train, y_train)
 
