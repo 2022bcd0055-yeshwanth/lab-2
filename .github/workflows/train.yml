@@ -37,7 +37,7 @@ jobs:
           echo "## ML Experiment Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Name:** Yeshwanth" >> $GITHUB_STEP_SUMMARY
-          echo "**Roll Number:** 2022BCD0056" >> $GITHUB_STEP_SUMMARY
+          echo "**Roll Number:** 2022BCD0055" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           grep "RMSE" metrics.txt >> $GITHUB_STEP_SUMMARY
           grep "R2" metrics.txt >> $GITHUB_STEP_SUMMARY
