@@ -10,23 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 2: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
+      # Step 3: Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Step 4: Run training script
       - name: Run training
         run: |
           python scripts/train.py | tee metrics.txt
 
+      # Step 5: Write metrics to GitHub Job Summary
       - name: Write results to Job Summary
         run: |
           echo "## ML Experiment Results" >> $GITHUB_STEP_SUMMARY
@@ -36,3 +41,13 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           grep "RMSE" metrics.txt >> $GITHUB_STEP_SUMMARY
           grep "R2" metrics.txt >> $GITHUB_STEP_SUMMARY
+
+      # Step 6: Upload artifacts (REQUIRED FOR LAB)
+      - name: Upload experiment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-artifacts
+          path: |
+            results.json
+            model.pkl
+            metrics.txt
