@@ -52,29 +52,30 @@ jobs:
 
       - name: Compare model metrics
         run: |
-          python -c "
-import json, os
+          python <<EOF
+          import json
+          import os
 
-with open('metrics.json') as f:
-    metrics = json.load(f)
+          with open("metrics.json") as f:
+              metrics = json.load(f)
 
-current_r2 = metrics['r2']
-best_r2 = float(os.environ.get('BEST_R2', 0))
+          current_r2 = metrics["r2"]
+          best_r2 = float(os.environ.get("BEST_R2", 0))
 
-print(f'Current R2: {current_r2}')
-print(f'Best R2: {best_r2}')
+          print(f"Current R2: {current_r2}")
+          print(f"Best R2: {best_r2}")
 
-if current_r2 <= best_r2:
-    print('2022BCD0056 ---- Metric did not improve')
-    exit(0)
+          if current_r2 <= best_r2:
+              print("2022BCD0056 ---- Metric did not improve")
+              exit(0)
 
-print('Metric improved. Proceeding with deployment.')
-"
+          print("Metric improved. Proceeding with deployment.")
+          EOF
 
       - name: Login to Docker Hub
         run: |
-          echo '${{ secrets.DOCKER_TOKEN }}' | docker login \
-            -u '${{ secrets.DOCKER_USERNAME }}' --password-stdin
+          echo "${{ secrets.DOCKER_TOKEN }}" | docker login \
+            -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       - name: Build Docker image
         run: |
