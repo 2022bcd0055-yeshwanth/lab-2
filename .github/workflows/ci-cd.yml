@@ -66,7 +66,7 @@ jobs:
           print(f"Best R2: {best_r2}")
 
           if current_r2 <= best_r2:
-              print("2022BCD0056 ---- Metric did not improve")
+              print("2022BCD0055 ---- Metric did not improve")
               exit(0)
 
           print("Metric improved. Proceeding with deployment.")
