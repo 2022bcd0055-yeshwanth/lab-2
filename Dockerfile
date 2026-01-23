@@ -2,10 +2,17 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+# Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY model.pkl .
+# Create artifacts directory
+RUN mkdir -p artifacts
+
+# Copy model into expected path
+COPY model.pkl artifacts/model.pkl
+
+# Copy FastAPI app
 COPY app.py .
 
 EXPOSE 8000
