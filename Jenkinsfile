@@ -49,18 +49,24 @@ pipeline {
         stage('Compare With Best') {
             steps {
                 script {
-                    def best = credentials('BEST_R2').toFloat()
 
-                    echo "Best R2 = ${best}"
+            withCredentials([string(credentialsId: 'BEST_R2', variable: 'BEST_R2_VAL')]) {
 
-                    if (env.NEW_R2.toFloat() > best) {
-                        env.BUILD_DOCKER = "true"
-                        echo "Model improved ✅"
-                    } else {
-                        env.BUILD_DOCKER = "false"
-                        echo "Model not improved ❌"
-                    }
+                def best = BEST_R2_VAL.toFloat()
+                def current = env.NEW_R2.toFloat()
+
+                echo "Best R2 = ${best}"
+                echo "Current R2 = ${current}"
+
+                if (current > best) {
+                    env.BUILD_DOCKER = "true"
+                    echo "Model improved ✅"
+                } else {
+                    env.BUILD_DOCKER = "false"
+                    echo "Model not improved ❌"
                 }
+            }
+        }
             }
         }
 
