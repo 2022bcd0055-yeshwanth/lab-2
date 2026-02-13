@@ -37,7 +37,7 @@ pipeline {
             steps {
                 script {
                     env.NEW_R2 = sh(
-                        script: "jq .r2 outputs/metrics.json",
+                        script: "jq .r2 metrics.json",
                         returnStdout: true
                     ).trim()
 
@@ -98,7 +98,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'outputs/**', fingerprint: true
+            archiveArtifacts artifacts: 'metrics.json, model.pkl', fingerprint: true
         }
     }
 }
