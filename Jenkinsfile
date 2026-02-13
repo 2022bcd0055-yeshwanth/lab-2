@@ -1,0 +1,104 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "2022bcd0055yeshwanth/2022bcd0055-ml"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup Python Environment') {
+            steps {
+                sh '''
+                python3 -m venv venv
+                . venv/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Train Model') {
+            steps {
+                sh '''
+                . venv/bin/activate
+                python scripts/train.py
+                '''
+            }
+        }
+
+        stage('Read Metrics') {
+            steps {
+                script {
+                    env.NEW_R2 = sh(
+                        script: "jq .r2 outputs/metrics.json",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "New R2 = ${env.NEW_R2}"
+                }
+            }
+        }
+
+        stage('Compare With Best') {
+            steps {
+                script {
+                    def best = credentials('BEST_R2').toFloat()
+
+                    echo "Best R2 = ${best}"
+
+                    if (env.NEW_R2.toFloat() > best) {
+                        env.BUILD_DOCKER = "true"
+                        echo "Model improved ✅"
+                    } else {
+                        env.BUILD_DOCKER = "false"
+                        echo "Model not improved ❌"
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            when {
+                environment name: 'BUILD_DOCKER', value: 'true'
+            }
+            steps {
+                sh '''
+                docker build -t $IMAGE_NAME:${BUILD_NUMBER} .
+                docker tag $IMAGE_NAME:${BUILD_NUMBER} $IMAGE_NAME:latest
+                '''
+            }
+        }
+
+        stage('Push Docker Image') {
+            when {
+                environment name: 'BUILD_DOCKER', value: 'true'
+            }
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS')]) {
+
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker push $IMAGE_NAME:${BUILD_NUMBER}
+                    docker push $IMAGE_NAME:latest
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'outputs/**', fingerprint: true
+        }
+    }
+}
