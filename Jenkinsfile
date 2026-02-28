@@ -70,7 +70,7 @@ pipeline {
         stage('Invalid Inference Test') {
             steps {
                 sh '''
-                QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' invalid_input.json)
+                QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' invalid.json)
 
                 STATUS=$(curl -s -o invalid_output.json -w "%{http_code}" \
                 "$BASE_URL/predict?$QUERY")
