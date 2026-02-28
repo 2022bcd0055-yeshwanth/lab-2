@@ -53,7 +53,7 @@ pipeline {
         stage('Inference Test') {
             steps {
                 sh '''
-                QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' invalid.json)
+                QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' valid_input.json)
 
                 curl "$BASE_URL/predict?$QUERY" > output.json
                 '''
