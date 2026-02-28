@@ -2,109 +2,78 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "2022bcd0055yeshwanth/2022bcd0055-ml"
+        IMAGE = "2022bcd0055yeshwanth/2022bcd0055-ml:latest"
+        CONTAINER = "ml_infer_test"
+        PORT = "8000"
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Pull Docker Image') {
             steps {
-                checkout scm
+                sh 'docker pull $IMAGE'
             }
         }
 
-        stage('Setup Python Environment') {
+        stage('Run Container') {
             steps {
                 sh '''
-                python3 -m venv venv
-                . venv/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
+                docker run -d -p 8000:8000 --name $CONTAINER $IMAGE
                 '''
             }
         }
 
-        stage('Train Model') {
+        stage('Wait for API') {
             steps {
                 sh '''
-                . venv/bin/activate
-                python scripts/train.py
+                for i in {1..10}
+                do
+                  sleep 5
+                  curl -f http://localhost:8000/docs && break
+                done
                 '''
             }
         }
 
-        stage('Read Metrics') {
-            steps {
-                script {
-                    env.NEW_R2 = sh(
-                        script: "jq .r2 metrics.json",
-                        returnStdout: true
-                    ).trim()
-
-                    echo "New R2 = ${env.NEW_R2}"
-                }
-            }
-        }
-
-        stage('Compare With Best') {
-            steps {
-                script {
-
-            withCredentials([string(credentialsId: 'BEST_R2', variable: 'BEST_R2_VAL')]) {
-
-                def best = BEST_R2_VAL.toFloat()
-                def current = env.NEW_R2.toFloat()
-
-                echo "Best R2 = ${best}"
-                echo "Current R2 = ${current}"
-
-                if (current > best) {
-                    env.BUILD_DOCKER = "true"
-                    echo "Model improved ✅"
-                } else {
-                    env.BUILD_DOCKER = "false"
-                    echo "Model not improved ❌"
-                }
-            }
-        }
-            }
-        }
-
-        stage('Build Docker Image') {
-            when {
-                environment name: 'BUILD_DOCKER', value: 'true'
-            }
+        stage('Valid Inference Test') {
             steps {
                 sh '''
-                docker build -t $IMAGE_NAME:${BUILD_NUMBER} .
-                docker tag $IMAGE_NAME:${BUILD_NUMBER} $IMAGE_NAME:latest
+                QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' valid_input.json)
+
+                curl "http://localhost:8000/predict?$QUERY" > valid_output.json
+                '''
+
+                sh 'cat valid_output.json'
+
+                sh 'grep -q wine_quality valid_output.json'
+            }
+        }
+
+        stage('Invalid Inference Test') {
+            steps {
+                sh '''
+                QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' invalid_input.json)
+
+                STATUS=$(curl -s -o invalid_output.json -w "%{http_code}" \
+                "http://localhost:8000/predict?$QUERY")
+
+                if [ "$STATUS" -eq 200 ]; then
+                  echo "Invalid test failed"
+                  exit 1
+                fi
+                '''
+
+                sh 'cat invalid_output.json'
+            }
+        }
+
+        stage('Stop Container') {
+            steps {
+                sh '''
+                docker stop $CONTAINER
+                docker rm $CONTAINER
                 '''
             }
-        }
-
-        stage('Push Docker Image') {
-            when {
-                environment name: 'BUILD_DOCKER', value: 'true'
-            }
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS')]) {
-
-                    sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push $IMAGE_NAME:${BUILD_NUMBER}
-                    docker push $IMAGE_NAME:latest
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            archiveArtifacts artifacts: 'metrics.json, model.pkl', fingerprint: true
         }
     }
 }
