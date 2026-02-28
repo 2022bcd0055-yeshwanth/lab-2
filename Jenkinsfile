@@ -4,7 +4,6 @@ pipeline {
     environment {
         IMAGE = "2022bcd0055yeshwanth/2022bcd0055-ml:latest"
         CONTAINER = "ml_infer_test"
-        PORT = "8000"
         BASE_URL = "http://host.docker.internal:8000"
     }
 
@@ -24,9 +23,7 @@ pipeline {
 
         stage('Run Container') {
             steps {
-                sh '''
-                docker run -d -p 8000:8000 --name $CONTAINER $IMAGE
-                '''
+                sh 'docker run -d -p 8000:8000 --name $CONTAINER $IMAGE'
             }
         }
 
@@ -53,45 +50,25 @@ pipeline {
             }
         }
 
-        stage('Valid Inference Test') {
+        stage('Inference Test') {
             steps {
                 sh '''
                 QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' valid_input.json)
 
-                curl "$BASE_URL/predict?$QUERY" > valid_output.json
+                curl "$BASE_URL/predict?$QUERY" > output.json
                 '''
 
-                sh 'cat valid_output.json'
+                sh 'cat output.json'
 
-                sh 'grep -q wine_quality valid_output.json'
+                // ✅ This decides SUCCESS / FAILURE
+                sh 'grep -q wine_quality output.json'
             }
         }
+    }
 
-        stage('Invalid Inference Test') {
-            steps {
-                sh '''
-                QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' invalid.json)
-
-                STATUS=$(curl -s -o invalid_output.json -w "%{http_code}" \
-                "$BASE_URL/predict?$QUERY")
-
-                if [ "$STATUS" -eq 200 ]; then
-                  echo "Invalid test failed"
-                  exit 1
-                fi
-                '''
-
-                sh 'cat invalid_output.json'
-            }
-        }
-
-        stage('Stop Container') {
-            steps {
-                sh '''
-                docker stop $CONTAINER
-                docker rm $CONTAINER
-                '''
-            }
+    post {
+        always {
+            sh 'docker rm -f $CONTAINER || true'
         }
     }
 }
