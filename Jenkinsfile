@@ -5,9 +5,16 @@ pipeline {
         IMAGE = "2022bcd0055yeshwanth/2022bcd0055-ml:latest"
         CONTAINER = "ml_infer_test"
         PORT = "8000"
+        BASE_URL = "http://host.docker.internal:8000"
     }
 
     stages {
+
+        stage('Cleanup Old Container') {
+            steps {
+                sh 'docker rm -f $CONTAINER || true'
+            }
+        }
 
         stage('Pull Docker Image') {
             steps {
@@ -26,11 +33,22 @@ pipeline {
         stage('Wait for API') {
             steps {
                 sh '''
-                for i in {1..10}
+                for i in {1..12}
                 do
                   sleep 5
-                  curl -f http://localhost:8000/docs && break
+                  curl -f $BASE_URL/docs && exit 0
                 done
+                echo "API not ready"
+                exit 1
+                '''
+            }
+        }
+
+        stage('Install jq') {
+            steps {
+                sh '''
+                apt-get update
+                apt-get install -y jq
                 '''
             }
         }
@@ -40,7 +58,7 @@ pipeline {
                 sh '''
                 QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' valid_input.json)
 
-                curl "http://localhost:8000/predict?$QUERY" > valid_output.json
+                curl "$BASE_URL/predict?$QUERY" > valid_output.json
                 '''
 
                 sh 'cat valid_output.json'
@@ -55,7 +73,7 @@ pipeline {
                 QUERY=$(jq -r 'to_entries|map("\\(.key)=\\(.value)")|join("&")' invalid_input.json)
 
                 STATUS=$(curl -s -o invalid_output.json -w "%{http_code}" \
-                "http://localhost:8000/predict?$QUERY")
+                "$BASE_URL/predict?$QUERY")
 
                 if [ "$STATUS" -eq 200 ]; then
                   echo "Invalid test failed"
